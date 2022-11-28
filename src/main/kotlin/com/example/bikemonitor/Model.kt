@@ -1,35 +1,40 @@
 package com.example.bikemonitor
 
-data class BikeStation(
-        val station_id: String,
-        val name: String,
-        val address: String,
-        val lat: Double,
-        val lon: Double,
-        val capacity: Int
+data class StationInfo(
+                val station_id: String,
+                val name: String,
+                val address: String,
+                val lat: Double,
+                val lon: Double,
+                val capacity: Int
 )
 
-data class BikeStationAvailability(
-        val station_id: String,
-        val is_installed: Int,
-        val is_renting: Int,
-        val num_bikes_available: Int,
-        val num_docks_available: Int,
-        val last_reported: Int,
-        val is_returning: Int
+data class StationStatus(
+                val station_id: String,
+                val is_installed: Int,
+                val is_renting: Int,
+                val num_bikes_available: Int,
+                val num_docks_available: Int,
+                val last_reported: Int,
+                val is_returning: Int
 )
 
 data class BikeStationWithAvailability(
-        val station_id: String,
-        val name: String,
-        val num_bikes_available: Int,
-        val num_docks_available: Int
+                val station_id: String,
+                val name: String,
+                val num_bikes_available: Int,
+                val num_docks_available: Int
 )
 
-data class StationsData(val stations: List<BikeStation>)
+data class StationsInfoData(val stations: List<StationInfo>)
 
-data class BikeStationsJSON(val last_updated: Int, val data: StationsData)
+data class StationsInfoJSON(val last_updated: Long, val data: StationsInfoData)
 
-data class AvailabilityData(val stations: List<BikeStationAvailability>)
+data class StationsStatusData(val stations: List<StationStatus>)
 
-data class BikeAvailabilityJSON(var last_updated: Int, var data: AvailabilityData)
+data class StationsStatusJSON(var last_updated: Long, var data: StationsStatusData)
+
+data class StationsWithAvailabilityJSON(
+                var last_updated: Long,
+                var stations: MutableList<BikeStationWithAvailability>
+)

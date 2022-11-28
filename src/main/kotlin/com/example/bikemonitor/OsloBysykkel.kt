@@ -1,38 +1,55 @@
 package com.example.bikemonitor
 
 import com.google.gson.Gson
+import java.time.Instant
 import khttp.get
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.body
+import org.springframework.web.util.UriComponentsBuilder
 import reactor.core.publisher.Mono
 
 @Component
 class OsloBysykkel : GeneralBikeShareFeedSpecification {
   private val logger = LoggerFactory.getLogger(javaClass)
   private val gson = Gson()
+  // TODO Move this out into some sort of configuration
+  override val gbfsBaseUrl = "https://gbfs.urbansharing.com/oslobysykkel.no/"
 
   override fun getBikeAvailability(request: ServerRequest): Mono<ServerResponse> {
-    // TODO Move these URLs out into some configuration
-    val StationsResponse =
-        getBikeStationsData(
-            "https://gbfs.urbansharing.com/oslobysykkel.no/station_information.json"
-        )
-    val StationAvailabilityResponse =
-        getBikeAvailabilityData("https://gbfs.urbansharing.com/oslobysykkel.no/station_status.json")
-    var bikeAvailability = StationAvailabilityResponse.data.stations
-    var stationsInfo = StationsResponse.data.stations
+    val StationsResponse = getStationsInfoData(getGBFSUrl("station_information.json"))
+    val StationAvailabilityResponse = getStationsStatusData(getGBFSUrl("station_status.json"))
 
-    var stationsByStationId = stationsInfo.map { it.station_id to it }.toMap()
-    var availabilityByStationId = bikeAvailability.map { it.station_id to it }.toMap()
+    var stationsByStationId = StationsResponse.data.stations.map { it.station_id to it }.toMap()
+    var availabilityByStationId =
+        StationAvailabilityResponse.data.stations.map { it.station_id to it }.toMap()
+    // Do we have info on all stations in the status response?
     val allStationsKnown =
         (stationsByStationId.keys.toSet().containsAll(availabilityByStationId.keys.toSet()))
     if (allStationsKnown != true) {
-      TODO("Not implemented yet, need to update stations before proceeding")
+      // TODO Should we download the station information again?
+      // Throwing an error might be an overkill if it's only some stations that are missing info,
+      // not all. Depends what the client needs and how strict we should be.
+      TODO("Not implemented yet")
     }
 
+    val stationsWithAvailability =
+        getStationsWithAvaliability(stationsByStationId, availabilityByStationId)
+
+    val responseBody =
+        StationsWithAvailabilityJSON(
+            last_updated = Instant.now().epochSecond,
+            stations = stationsWithAvailability
+        )
+    return ServerResponse.ok().body(Mono.just(responseBody))
+  }
+
+  fun getStationsWithAvaliability(
+      stationsByStationId: Map<String, StationInfo>,
+      availabilityByStationId: Map<String, StationStatus>
+  ): MutableList<BikeStationWithAvailability> {
     val stationsWithAvailability = mutableListOf<BikeStationWithAvailability>()
 
     for ((station_id, availability) in availabilityByStationId) {
@@ -61,19 +78,22 @@ class OsloBysykkel : GeneralBikeShareFeedSpecification {
           }
     }
 
-    var jsonResponse = gson.toJson(stationsWithAvailability)
-    return ServerResponse.ok().body(Mono.just(jsonResponse), String::class.java)
+    return stationsWithAvailability
   }
 
-  override fun getBikeStationsData(url: String): BikeStationsJSON {
-    val stations = get(url).jsonObject.toString()
-    val stationsJson = gson.fromJson(stations, BikeStationsJSON::class.java)
-    return stationsJson
+  fun getGBFSUrl(path: String): String {
+    return UriComponentsBuilder.fromHttpUrl(gbfsBaseUrl).path(path).toUriString()
   }
 
-  override fun getBikeAvailabilityData(url: String): BikeAvailabilityJSON {
-    val availability = get(url).jsonObject.toString()
-    val availabilityJson = gson.fromJson(availability, BikeAvailabilityJSON::class.java)
-    return availabilityJson
+  override fun getStationsInfoData(url: String): StationsInfoJSON {
+    val stationsInfo = get(url).jsonObject.toString()
+    val stationsInfoJson = gson.fromJson(stationsInfo, StationsInfoJSON::class.java)
+    return stationsInfoJson
+  }
+
+  override fun getStationsStatusData(url: String): StationsStatusJSON {
+    val statusInfo = get(url).jsonObject.toString()
+    val statusInfoJson = gson.fromJson(statusInfo, StationsStatusJSON::class.java)
+    return statusInfoJson
   }
 }

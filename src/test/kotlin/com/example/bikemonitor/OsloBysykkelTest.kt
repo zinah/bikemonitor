@@ -54,10 +54,10 @@ class OsloBysykkelTest {
         }
 
         @Test
-        fun `test getBikeStationsData OK`() {
+        fun `test getStationsInfoData OK`() {
                 val expectedStations =
                                 listOf(
-                                                BikeStation(
+                                                StationInfo(
                                                                 station_id = "627",
                                                                 name = "Skøyen Stasjon",
                                                                 address = "Skøyen Stasjon",
@@ -65,7 +65,7 @@ class OsloBysykkelTest {
                                                                 lon = 10.6788129,
                                                                 capacity = 20
                                                 ),
-                                                BikeStation(
+                                                StationInfo(
                                                                 station_id = "623",
                                                                 name = "7 Juni Plassen",
                                                                 address = "7 Juni Plassen",
@@ -73,7 +73,7 @@ class OsloBysykkelTest {
                                                                 lon = 10.7312715,
                                                                 capacity = 15
                                                 ),
-                                                BikeStation(
+                                                StationInfo(
                                                                 station_id = "610",
                                                                 name = "Sotahjørnet",
                                                                 address = "Sotahjørnet",
@@ -83,9 +83,12 @@ class OsloBysykkelTest {
                                                 )
                                 )
 
-                assert(osloBysykkel.getBikeStationsData(stationsInfoURL).last_updated == 1553592653)
                 assert(
-                                osloBysykkel.getBikeStationsData(stationsInfoURL)
+                                osloBysykkel.getStationsInfoData(stationsInfoURL).last_updated ==
+                                                1553592653.toLong()
+                )
+                assert(
+                                osloBysykkel.getStationsInfoData(stationsInfoURL)
                                                 .data
                                                 .stations
                                                 .toSet() == expectedStations.toSet()
@@ -93,10 +96,10 @@ class OsloBysykkelTest {
         }
 
         @Test
-        fun `test getBikeAvailability OK`() {
-                var expectedAvailability =
+        fun `test getStationsStatusData OK`() {
+                var expectedStatus =
                                 listOf(
-                                                BikeStationAvailability(
+                                                StationStatus(
                                                                 station_id = "623",
                                                                 is_installed = 1,
                                                                 is_renting = 1,
@@ -105,7 +108,7 @@ class OsloBysykkelTest {
                                                                 last_reported = 1540219230,
                                                                 is_returning = 1
                                                 ),
-                                                BikeStationAvailability(
+                                                StationStatus(
                                                                 station_id = "627",
                                                                 is_installed = 1,
                                                                 is_renting = 1,
@@ -114,7 +117,7 @@ class OsloBysykkelTest {
                                                                 last_reported = 1540219230,
                                                                 is_returning = 1
                                                 ),
-                                                BikeStationAvailability(
+                                                StationStatus(
                                                                 station_id = "610",
                                                                 is_installed = 1,
                                                                 is_renting = 1,
@@ -125,14 +128,14 @@ class OsloBysykkelTest {
                                                 )
                                 )
                 assert(
-                                osloBysykkel.getBikeAvailabilityData(stationsStatusURL)
-                                                .last_updated == 1540219230
+                                osloBysykkel.getStationsStatusData(stationsStatusURL)
+                                                .last_updated == 1540219230.toLong()
                 )
                 assert(
-                                osloBysykkel.getBikeAvailabilityData(stationsStatusURL)
+                                osloBysykkel.getStationsStatusData(stationsStatusURL)
                                                 .data
                                                 .stations
-                                                .toSet() == expectedAvailability.toSet()
+                                                .toSet() == expectedStatus.toSet()
                 )
         }
 }
