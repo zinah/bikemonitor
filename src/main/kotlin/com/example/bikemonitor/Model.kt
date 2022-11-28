@@ -1,29 +1,29 @@
 package com.example.bikemonitor
 
 data class StationInfo(
-                val station_id: String,
-                val name: String,
-                val address: String,
-                val lat: Double,
-                val lon: Double,
-                val capacity: Int
+    val station_id: String,
+    val name: String,
+    val address: String,
+    val lat: Double,
+    val lon: Double,
+    val capacity: Int
 )
 
 data class StationStatus(
-                val station_id: String,
-                val is_installed: Int,
-                val is_renting: Int,
-                val num_bikes_available: Int,
-                val num_docks_available: Int,
-                val last_reported: Int,
-                val is_returning: Int
+    val station_id: String,
+    val is_installed: Int,
+    val is_renting: Int,
+    val num_bikes_available: Int,
+    val num_docks_available: Int,
+    val last_reported: Int,
+    val is_returning: Int
 )
 
 data class BikeStationWithAvailability(
-                val station_id: String,
-                val name: String,
-                val num_bikes_available: Int,
-                val num_docks_available: Int
+    val station_id: String,
+    val name: String,
+    val num_bikes_available: Int,
+    val num_docks_available: Int
 )
 
 data class StationsInfoData(val stations: List<StationInfo>)
