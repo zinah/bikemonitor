@@ -1,6 +1,7 @@
 package com.example.bikemonitor
 
 import com.google.gson.Gson
+import khttp.get
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.server.ServerRequest
@@ -14,8 +15,13 @@ class OsloBysykkel : GeneralBikeShareFeedSpecification {
   private val gson = Gson()
 
   override fun getBikeAvailability(request: ServerRequest): Mono<ServerResponse> {
-    val StationsResponse = getBikeStationsData()
-    val StationAvailabilityResponse = getBikeAvailabilityData()
+    // TODO Move these URLs out into some configuration
+    val StationsResponse =
+        getBikeStationsData(
+            "https://gbfs.urbansharing.com/oslobysykkel.no/station_information.json"
+        )
+    val StationAvailabilityResponse =
+        getBikeAvailabilityData("https://gbfs.urbansharing.com/oslobysykkel.no/station_status.json")
     var bikeAvailability = StationAvailabilityResponse.data.stations
     var stationsInfo = StationsResponse.data.stations
 
@@ -24,7 +30,7 @@ class OsloBysykkel : GeneralBikeShareFeedSpecification {
     val allStationsKnown =
         (stationsByStationId.keys.toSet().containsAll(availabilityByStationId.keys.toSet()))
     if (allStationsKnown != true) {
-      TODO("Not implemented yet, need to update station before proceeding")
+      TODO("Not implemented yet, need to update stations before proceeding")
     }
 
     val stationsWithAvailability = mutableListOf<BikeStationWithAvailability>()
@@ -59,7 +65,7 @@ class OsloBysykkel : GeneralBikeShareFeedSpecification {
     return ServerResponse.ok().body(Mono.just(jsonResponse), String::class.java)
   }
 
-  override fun getBikeStationsData(): BikeStationsJSON {
+  override fun getBikeStationsData(url: String): BikeStationsJSON {
     val fakeStationsJSON =
         """
     {
@@ -94,12 +100,18 @@ class OsloBysykkel : GeneralBikeShareFeedSpecification {
         }
       }
     """
+    val stations = get(url).jsonObject.toString()
+    val stationsJson = gson.fromJson(stations, BikeStationsJSON::class.java)
 
     val fakeStations = gson.fromJson(fakeStationsJSON, BikeStationsJSON::class.java)
-    return fakeStations
+    if (stationsJson == null) {
+      return fakeStations
+    } else {
+      return stationsJson
+    }
   }
 
-  override fun getBikeAvailabilityData(): BikeAvailabilityJSON {
+  override fun getBikeAvailabilityData(url: String): BikeAvailabilityJSON {
     var fakeAvailabilityJSON =
         """
         {
@@ -137,7 +149,13 @@ class OsloBysykkel : GeneralBikeShareFeedSpecification {
             }
           }
         """
+    val availability = get(url).jsonObject.toString()
+    val availabilityJson = gson.fromJson(availability, BikeAvailabilityJSON::class.java)
     val fakeAvailability = gson.fromJson(fakeAvailabilityJSON, BikeAvailabilityJSON::class.java)
-    return fakeAvailability
+    if (availabilityJson == null) {
+      return fakeAvailability
+    } else {
+      return availabilityJson
+    }
   }
 }

@@ -1,5 +1,8 @@
 package com.example.bikemonitor
 
+import io.mockk.every
+import io.mockk.mockkStatic
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.slf4j.Logger
@@ -12,9 +15,46 @@ class OsloBysykkelTest {
         private val logger: Logger = LoggerFactory.getLogger(javaClass)
         private val osloBysykkel = OsloBysykkel()
 
+        private val stationsInfoApiResponse: String? =
+                        this::class.java
+                                        .classLoader
+                                        .getResource("station_information.json")
+                                        ?.readText()
+        private val stationsStatusApiResponse: String? =
+                        this::class.java.classLoader.getResource("station_status.json")?.readText()
+
+        private val stationsInfoURL =
+                        "https://gbfs.urbansharing.com/oslobysykkel.no/station_information.json"
+        private val stationsStatusURL =
+                        "https://gbfs.urbansharing.com/oslobysykkel.no/station_status.json"
+
+        @BeforeAll
+        fun setup() {
+                mockkStatic("khttp.KHttp")
+                // TODO This should be mocking `khttp.get(stationsInfoURL)` and return Response
+                every { khttp.get(stationsInfoURL).jsonObject.toString() } returns
+                                stationsInfoApiResponse!!
+                // TODO This should be mocking `khttp.get(stationsStatusURL)` and return Response
+                every { khttp.get(stationsStatusURL).jsonObject.toString() } returns
+                                stationsStatusApiResponse!!
+        }
+
+        @Test
+        fun `test gbfs station info api response is loaded`() {
+
+                logger.info(stationsInfoApiResponse)
+                assert(stationsInfoApiResponse != null)
+        }
+
+        @Test
+        fun `test gbfs station status api response is loaded`() {
+
+                logger.info(stationsStatusApiResponse)
+                assert(stationsStatusApiResponse != null)
+        }
+
         @Test
         fun `test getBikeStationsData OK`() {
-                logger.info(osloBysykkel.getBikeStationsData().toString())
                 val expectedStations =
                                 listOf(
                                                 BikeStation(
@@ -43,16 +83,17 @@ class OsloBysykkelTest {
                                                 )
                                 )
 
-                assert(osloBysykkel.getBikeStationsData().last_updated == 1553592653)
+                assert(osloBysykkel.getBikeStationsData(stationsInfoURL).last_updated == 1553592653)
                 assert(
-                                osloBysykkel.getBikeStationsData().data.stations.toSet() ==
-                                                expectedStations.toSet()
+                                osloBysykkel.getBikeStationsData(stationsInfoURL)
+                                                .data
+                                                .stations
+                                                .toSet() == expectedStations.toSet()
                 )
         }
 
         @Test
         fun `test getBikeAvailability OK`() {
-                logger.info(osloBysykkel.getBikeAvailabilityData().toString())
                 var expectedAvailability =
                                 listOf(
                                                 BikeStationAvailability(
@@ -83,10 +124,15 @@ class OsloBysykkelTest {
                                                                 is_returning = 1
                                                 )
                                 )
-                assert(osloBysykkel.getBikeAvailabilityData().last_updated == 1540219230)
                 assert(
-                                osloBysykkel.getBikeAvailabilityData().data.stations.toSet() ==
-                                                expectedAvailability.toSet()
+                                osloBysykkel.getBikeAvailabilityData(stationsStatusURL)
+                                                .last_updated == 1540219230
+                )
+                assert(
+                                osloBysykkel.getBikeAvailabilityData(stationsStatusURL)
+                                                .data
+                                                .stations
+                                                .toSet() == expectedAvailability.toSet()
                 )
         }
 }

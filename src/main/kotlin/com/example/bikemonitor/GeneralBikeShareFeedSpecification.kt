@@ -6,6 +6,6 @@ import reactor.core.publisher.Mono
 
 interface GeneralBikeShareFeedSpecification {
     fun getBikeAvailability(request: ServerRequest): Mono<ServerResponse>
-    fun getBikeStationsData(): BikeStationsJSON
-    fun getBikeAvailabilityData(): BikeAvailabilityJSON
+    fun getBikeStationsData(url: String): BikeStationsJSON
+    fun getBikeAvailabilityData(url: String): BikeAvailabilityJSON
 }
