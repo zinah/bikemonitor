@@ -10,8 +10,8 @@ class Route(private val gbfs: GeneralBikeShareFeedSpecification) {
 
     @Bean
     fun buildRoute() = router {
-        ("/stations" and accept(APPLICATION_JSON)).nest {
-            GET("/availability", gbfs::getBikeAvailability)
+        ("/bikemonitor" and accept(APPLICATION_JSON)).nest {
+            GET("/availability.json", gbfs::getBikeAvailability)
         }
     }
 }

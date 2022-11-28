@@ -32,9 +32,8 @@ data class StationsInfoJSON(val last_updated: Long, val data: StationsInfoData)
 
 data class StationsStatusData(val stations: List<StationStatus>)
 
-data class StationsStatusJSON(var last_updated: Long, var data: StationsStatusData)
+data class StationsStatusJSON(val last_updated: Long, val data: StationsStatusData)
 
-data class StationsWithAvailabilityJSON(
-                var last_updated: Long,
-                var stations: MutableList<BikeStationWithAvailability>
-)
+data class StationsWithAvailability(val stations: MutableList<BikeStationWithAvailability>)
+
+data class StationsWithAvailabilityJSON(val last_updated: Long, val data: StationsWithAvailability)

@@ -11,6 +11,10 @@ import org.springframework.web.reactive.function.server.body
 import org.springframework.web.util.UriComponentsBuilder
 import reactor.core.publisher.Mono
 
+/**
+ * An example implementation of GeneralBikeShareFeedSpecification service using Oslo Bysykkel open
+ * API.
+ */
 @Component
 class OsloBysykkel : GeneralBikeShareFeedSpecification {
   private val logger = LoggerFactory.getLogger(javaClass)
@@ -18,16 +22,26 @@ class OsloBysykkel : GeneralBikeShareFeedSpecification {
   // TODO Move this out into some sort of configuration
   override val gbfsBaseUrl = "https://gbfs.urbansharing.com/oslobysykkel.no/"
 
+  /**
+   * Main logic behind the /stations/availability endpoint. Combines data from two Oslo Bysykkel
+   * APIs, info about stations themselves and their status details, including how many bikes are
+   * available and their max capacity (number of working docking stations).
+   *
+   * @return JSON server reponse with last_updated Unix timestamp and list of stations with their
+   * names, bike availability and max capacity.
+   */
   override fun getBikeAvailability(request: ServerRequest): Mono<ServerResponse> {
-    val StationsResponse = getStationsInfoData(getGBFSUrl("station_information.json"))
-    val StationAvailabilityResponse = getStationsStatusData(getGBFSUrl("station_status.json"))
+    val StationsInfoResponse = getStationsInfoData(getGBFSUrl("station_information.json"))
+    val StationsStatusResponse = getStationsStatusData(getGBFSUrl("station_status.json"))
 
-    var stationsByStationId = StationsResponse.data.stations.map { it.station_id to it }.toMap()
-    var availabilityByStationId =
-        StationAvailabilityResponse.data.stations.map { it.station_id to it }.toMap()
+    // Grouping stations details and their statuses by station_id to combine them easily
+    var stationsByStationId = StationsInfoResponse.data.stations.map { it.station_id to it }.toMap()
+    var statusByStationId = StationsStatusResponse.data.stations.map { it.station_id to it }.toMap()
     // Do we have info on all stations in the status response?
+    // We may have details for more stations than present in the status response which is fine.
+    // If vice versa is true, it means our list of stations details is outdated or incomplete.
     val allStationsKnown =
-        (stationsByStationId.keys.toSet().containsAll(availabilityByStationId.keys.toSet()))
+        (stationsByStationId.keys.toSet().containsAll(statusByStationId.keys.toSet()))
     if (allStationsKnown != true) {
       // TODO Should we download the station information again?
       // Throwing an error might be an overkill if it's only some stations that are missing info,
@@ -35,17 +49,24 @@ class OsloBysykkel : GeneralBikeShareFeedSpecification {
       TODO("Not implemented yet")
     }
 
+    // Combine the stations info and statuses
     val stationsWithAvailability =
-        getStationsWithAvaliability(stationsByStationId, availabilityByStationId)
+        getStationsWithAvaliability(stationsByStationId, statusByStationId)
 
+    // In the response JSON mirror the GBFS structure
     val responseBody =
         StationsWithAvailabilityJSON(
             last_updated = Instant.now().epochSecond,
-            stations = stationsWithAvailability
+            StationsWithAvailability(stations = stationsWithAvailability)
         )
     return ServerResponse.ok().body(Mono.just(responseBody))
   }
 
+  /**
+   * Combine stations names and info about their capacity and bike availability.file
+   *
+   * @return list of objects with the data combined
+   */
   fun getStationsWithAvaliability(
       stationsByStationId: Map<String, StationInfo>,
       availabilityByStationId: Map<String, StationStatus>
@@ -67,6 +88,8 @@ class OsloBysykkel : GeneralBikeShareFeedSpecification {
           ?: run {
             // Handle the case when despite the update to stations info it's still mismatched
             // Perhaps we shouldn't even show it if we have no info about the station itself?
+            // Depends how important it is to show partial data vs throw an error if just one
+            // station is incomplete
             stationsWithAvailability.add(
                 BikeStationWithAvailability(
                     station_id,
@@ -81,16 +104,22 @@ class OsloBysykkel : GeneralBikeShareFeedSpecification {
     return stationsWithAvailability
   }
 
+  /** Combine Oslo Bysykkel base API url with the path to various resources */
   fun getGBFSUrl(path: String): String {
     return UriComponentsBuilder.fromHttpUrl(gbfsBaseUrl).path(path).toUriString()
   }
 
+  /** Download JSON data with information about bike stations with their names, addresses, etc. */
   override fun getStationsInfoData(url: String): StationsInfoJSON {
     val stationsInfo = get(url).jsonObject.toString()
     val stationsInfoJson = gson.fromJson(stationsInfo, StationsInfoJSON::class.java)
     return stationsInfoJson
   }
 
+  /**
+   * Download JSON data with status information for each bike station, including number of available
+   * bikes, number of working dockins stations, etc.
+   */
   override fun getStationsStatusData(url: String): StationsStatusJSON {
     val statusInfo = get(url).jsonObject.toString()
     val statusInfoJson = gson.fromJson(statusInfo, StationsStatusJSON::class.java)
