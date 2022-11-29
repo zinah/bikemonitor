@@ -101,6 +101,7 @@ class OsloBysykkel : GeneralBikeShareFeedSpecification {
                 }
         }
 
+        // TODO Sort the list to have a predictable order
         return stationsWithAvailability
     }
 
